@@ -10,14 +10,14 @@ package source
 
 import (
 	"context"
+	"github.com/soajs/mongo.sync.go/mongodb"
+	"github.com/soajs/mongo.sync.go/settings"
+	"github.com/soajs/mongo.sync.go/token"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
-	"soajs/mongo.sync.go/mongodb"
-	"soajs/mongo.sync.go/settings"
-	"soajs/mongo.sync.go/token"
 	"time"
 )
 

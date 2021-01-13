@@ -10,11 +10,11 @@ package token
 
 import (
 	"context"
+	"github.com/soajs/mongo.sync.go/mongodb"
+	"github.com/soajs/mongo.sync.go/settings"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"soajs/mongo.sync.go/mongodb"
-	"soajs/mongo.sync.go/settings"
 	"time"
 )
 
