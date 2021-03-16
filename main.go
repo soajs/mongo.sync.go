@@ -21,6 +21,7 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 )
@@ -105,7 +106,7 @@ func runSyncStream(ctx context.Context, wg *sync.WaitGroup, sourceStream *mongo.
 	}
 }
 
-func executeSync(ctx context.Context, collection *settings.MongoCollections, opt *settings.MongoSync, t *token.Token, s *source.Source, d *destination.Destination, wg0 *sync.WaitGroup) {
+func executeSync(ctx context.Context, collection *settings.MongoCollections, opt *settings.MongoSync, t *token.Token, s *source.Source, d *destination.Destination, wg0 *sync.WaitGroup, skipResume bool) {
 	fatalErrors := make(chan error)
 	wgDone := make(chan bool)
 
@@ -140,6 +141,11 @@ func executeSync(ctx context.Context, collection *settings.MongoCollections, opt
 				params.Token = colToken.Token
 			}
 			params.Time = opTime
+			if skipResume {
+				log.Println("Skipping resume since it is no longer in oplog ...")
+				params.Token.Data = nil
+				params.Time = ""
+			}
 			sourceStream, err = s.GetStream(&params)
 			if err != nil {
 				fatalErrors <- err
@@ -169,10 +175,14 @@ func executeSync(ctx context.Context, collection *settings.MongoCollections, opt
 		if sourceStream != nil {
 			sourceStream.Close(ctx)
 		}
-		log.Println("Will try to execute sync again after 5 minute")
-		time.AfterFunc(5*time.Minute, func() {
-			executeSync(ctx, collection, opt, t, s, d, wg0)
-		})
+		if strings.Contains(err.Error(), "no longer be in the oplog") {
+			executeSync(ctx, collection, opt, t, s, d, wg0, true)
+		} else {
+			log.Println("Will try to execute sync again after 5 minute")
+			time.AfterFunc(5*time.Minute, func() {
+				executeSync(ctx, collection, opt, t, s, d, wg0, false)
+			})
+		}
 	}
 }
 
@@ -315,7 +325,7 @@ func main() {
 	var wgSync sync.WaitGroup
 	for i := 0; i < len(opt.Collections); i++ {
 		wgSync.Add(1)
-		go executeSync(ctx, &opt.Collections[i], opt, t, s, d, &wgSync)
+		go executeSync(ctx, &opt.Collections[i], opt, t, s, d, &wgSync, false)
 
 	}
 	wgSync.Wait()
