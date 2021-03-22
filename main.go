@@ -194,7 +194,9 @@ func executeSync(ctx context.Context, collection *settings.MongoCollections, opt
 func runCopyStream(ctx context.Context, wg *sync.WaitGroup, cursor *mongo.Cursor, d *destination.Destination, collection *settings.MongoCollections, fatalErrors chan error) {
 	defer cursor.Close(ctx)
 	defer wg.Done()
+	var counter = 0
 	for cursor.Next(ctx) {
+		counter = counter + 1
 		var rec bson.M
 		err := cursor.Decode(&rec)
 		if err != nil {
@@ -223,6 +225,7 @@ func runCopyStream(ctx context.Context, wg *sync.WaitGroup, cursor *mongo.Cursor
 			break
 		}
 	}
+	log.Println(fmt.Sprintf("Copying from : %s.%s to %s.%s - Done with count [%d]", collection.S.DbName, collection.S.ColName, collection.D.DbName, collection.D.ColName, counter))
 }
 
 func executeCopy(ctx context.Context, collection *settings.MongoCollections, opt *settings.MongoSync, t *token.Token, s *source.Source, d *destination.Destination, wg0 *sync.WaitGroup) {
