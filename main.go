@@ -17,6 +17,7 @@ import (
 	"github.com/soajs/mongo.sync.go/source"
 	"github.com/soajs/mongo.sync.go/token"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"log"
 	"os"
@@ -25,6 +26,10 @@ import (
 	"sync"
 	"time"
 )
+
+type Doc struct {
+	Id primitive.ObjectID `bson:"_id" json:"_id"`
+}
 
 var streamOperations = []string{"insert", "update", "replace"}
 var tokenId = "TOKEN_ID"
@@ -196,16 +201,24 @@ func runCopyStream(ctx context.Context, wg *sync.WaitGroup, cursor *mongo.Cursor
 			fatalErrors <- err
 			break
 		}
+
+		var doc Doc
+		err = cursor.Decode(&doc)
+		if err != nil {
+			fatalErrors <- err
+			break
+		}
 		var params destination.Params
 		params.DbName = collection.D.DbName
 		params.ColName = collection.D.ColName
+		params.Id = doc.Id
 		params.Record = rec
-		id, result, err := d.Add(&params)
+		result, err := d.Upsert(&params)
 		if err != nil {
 			fatalErrors <- err
 			break
 		} else if !result {
-			err = errors.New(fmt.Sprint("unable to add document with id ", id))
+			err = errors.New(fmt.Sprint("unable to add document with id ", doc.Id))
 			fatalErrors <- err
 			break
 		}
