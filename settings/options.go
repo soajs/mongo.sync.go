@@ -19,7 +19,14 @@ func GetMongoSync() (*MongoSync, error) {
 	var options MongoSync
 	err := options.getAsFile()
 	if err != nil {
-		return nil, err
+		if os.IsNotExist(err) {
+			err = options.getAsEnv()
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 	err = options.Validate()
 	if err != nil {
